@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+
 const units = ['grams', 'pieces', 'ml'];
 const categories = ['breakfast', 'lunch', 'dinner', 'today-special'];
 
 export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
- 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -14,6 +14,7 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
     { ingredient: '', quantity: '', unit: units[0] }
   ]);
   const [allIngredients, setAllIngredients] = useState([]);
+  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     axios.get(`${process.env.REACT_APP_SERVER_URL}/api/Ingredients-itemslist`)
@@ -37,6 +38,7 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
           : [{ ingredient: '', quantity: '', unit: units[0] }]
       );
       setImg(null);
+      setPreview(initialData.imageURL || null);
     } else {
       setName('');
       setDescription('');
@@ -44,6 +46,7 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
       setCat(categories[0]);
       setIngredients([{ ingredient: '', quantity: '', unit: units[0] }]);
       setImg(null);
+      setPreview(null);
     }
   }, [initialData]);
 
@@ -59,6 +62,16 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
 
   const removeIngredient = idx =>
     setIngredients(ingredients.filter((_, i) => i !== idx));
+
+  const handleImgChange = e => {
+    const file = e.target.files[0];
+    if (file && file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image must be less than 5MB!');
+      return;
+    }
+    setImg(file);
+    setPreview(file ? URL.createObjectURL(file) : null);
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -78,20 +91,24 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
     if (img) formData.append('img', img);
     formData.append('ingredients', JSON.stringify(ingredients));
 
-    if (initialData && initialData._id) {
-      await axios.put(
-        `${process.env.REACT_APP_SERVER_URL}/api/menu-items/${initialData._id}`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
-      if (onSuccess) onSuccess('Menu item updated!');
-    } else {
-      await axios.post(
-        `${process.env.REACT_APP_SERVER_URL}/api/menu-items`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
-      if (onSuccess) onSuccess('Menu item added!');
+    try {
+      if (initialData && initialData._id) {
+        await axios.put(
+          `${process.env.REACT_APP_SERVER_URL}/api/menu-items/${initialData._id}`,
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        if (onSuccess) onSuccess('Menu item updated!');
+      } else {
+        await axios.post(
+          `${process.env.REACT_APP_SERVER_URL}/api/menu-items`,
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        if (onSuccess) onSuccess('Menu item added!');
+      }
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Error saving menu item.');
     }
   };
 
@@ -126,7 +143,7 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
           onChange={e => setPrice(e.target.value)}
           required
         />
-        <div className="flex gap-4 flex-wrap">
+        <div className="flex gap-4 flex-wrap items-center">
           <select
             className="input-tw"
             value={cat}
@@ -140,8 +157,16 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
             className="input-tw"
             type="file"
             accept="image/*"
-            onChange={e => setImg(e.target.files[0])}
+            onChange={handleImgChange}
           />
+          {/* Image Preview */}
+          {preview && (
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-24 h-24 object-cover rounded border ml-2"
+            />
+          )}
         </div>
       </div>
 
@@ -227,7 +252,16 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
           animation: fade-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .input-tw {
-          @apply border border-[#90C67C] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#67AE6E] transition w-full;
+          border: 1px solid #90C67C;
+          border-radius: 0.5rem;
+          padding: 0.5rem 0.75rem;
+          transition: border 0.2s, box-shadow 0.2s;
+          width: 100%;
+        }
+        .input-tw:focus {
+          outline: none;
+          border-color: #67AE6E;
+          box-shadow: 0 0 0 2px #67AE6E33;
         }
       `}</style>
     </form>
