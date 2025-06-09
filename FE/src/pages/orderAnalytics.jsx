@@ -1,44 +1,48 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-// group orders by year, month, day
+// Utility to group orders by year, month, day
 function groupOrdersByDate(orders) {
   const grouped = {};
-  orders.forEach(order => {
+  for (const order of orders) {
     const date = new Date(order.createdAt);
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
+    const month = date.getMonth() + 1; // 0-indexed
+    const day = date.getDate();
     if (!grouped[year]) grouped[year] = {};
     if (!grouped[year][month]) grouped[year][month] = {};
     if (!grouped[year][month][day]) grouped[year][month][day] = [];
     grouped[year][month][day].push(order);
-  });
+  }
   return grouped;
 }
 
+// Status badge for order frequency
 function getOrderStatus(count) {
-  if (count >= 8) return { label: "Most Order", color: "text-[#328E6E]", bg: "bg-[#E1EEBC]" };
-  if (count >= 4) return { label: "Partial Order", color: "text-[#67AE6E]", bg: "bg-[#E1EEBC]" };
-  if (count < 4 && count > 0) return { label: "Least Order", color: "text-[#90C67C]", bg: "bg-[#E1EEBC]" };
-  return { label: "Not Order", color: "text-red-700", bg: "bg-red-100" };
+  if (count === 0) return { label: "No Orders", color: "text-gray-500", bg: "bg-gray-100" };
+  if (count < 4) return { label: "Low", color: "text-yellow-700", bg: "bg-yellow-100" };
+  if (count < 8) return { label: "Moderate", color: "text-blue-700", bg: "bg-blue-100" };
+  return { label: "High", color: "text-green-700", bg: "bg-green-100" };
 }
 
 export default function OrderAnalysisPage() {
   const [menu, setMenu] = useState([]);
   const [selectedMenu, setSelectedMenu] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [showPanel, setShowPanel] = useState(false);
   const [editing, setEditing] = useState(false);
   const [price, setPrice] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
-  const [showPanel, setShowPanel] = useState(false);
-  
 
+  // Fetch menu items on mount
   useEffect(() => {
-    axios.get(`${process.env.REACT_APP_SERVER_URL}/api/menu-itemslist`).then(res => setMenu(res.data));
+    axios
+      .get(`${process.env.REACT_APP_SERVER_URL}/api/menu-itemslist`)
+      .then((res) => setMenu(res.data))
+      .catch(() => alert("Failed to fetch menu items."));
   }, []);
 
-  // menu item is selected
+  // Handle menu item selection
   const handleMenuClick = async (item) => {
     setShowPanel(false);
     setTimeout(async () => {
@@ -46,43 +50,66 @@ export default function OrderAnalysisPage() {
       setEditing(false);
       setPrice(item.price);
       setOfferPrice(item.offerPrice || "");
-      const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/orders/:id?menuId=${item._id}`);
-      setOrders(res.data);
+      try {
+        // Fetch orders for this menu item
+        const res = await axios.get(
+          `${process.env.REACT_APP_SERVER_URL}/api/orders?menuId=${item._id}`
+        );
+        setOrders(res.data);
+      } catch (err) {
+        alert("Failed to fetch order data.");
+      }
       setShowPanel(true);
     }, 150);
   };
 
-  const grouped = groupOrdersByDate(orders);
-
+  // Group orders by date
   function getDailyOrderCounts() {
-    
-    const counts = [];
+    const grouped = groupOrdersByDate(orders);
+    const result = [];
     Object.entries(grouped).forEach(([year, months]) => {
       Object.entries(months).forEach(([month, days]) => {
-        Object.entries(days).forEach(([day, dayOrders]) => {
-          let count = 0;
-          dayOrders.forEach(order => {
-            order.items.forEach(item => {
-              if (item.menuId === selectedMenu._id || item.menuId?._id === selectedMenu._id) {
-                count += item.qty;
-              }
-            });
+        Object.entries(days).forEach(([day, ordersArr]) => {
+          result.push({
+            year,
+            month,
+            day,
+            count: ordersArr.length,
           });
-          counts.push({ year, month, day, count });
         });
       });
     });
-    return counts;
+    // Sort by date descending
+    return result.sort((a, b) => {
+      const d1 = new Date(a.year, a.month - 1, a.day);
+      const d2 = new Date(b.year, b.month - 1, b.day);
+      return d2 - d1;
+    });
   }
 
+  // Save price/offer edits
   const handleSave = async () => {
-    await axios.put(`${process.env.REACT_APP_SERVER_URL}/api/menu-item/${selectedMenu._id}`, {
-      price: Number(price),
-      offerPrice: offerPrice ? Number(offerPrice) : undefined
-    });
-    setEditing(false);
-    const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/menu-itemslist`);
-    setMenu(res.data);
+    try {
+      await axios.put(
+        `${process.env.REACT_APP_SERVER_URL}/api/menu-items/${selectedMenu._id}`,
+        { price: Number(price), offerPrice: Number(offerPrice) }
+      );
+      setSelectedMenu((prev) => ({
+        ...prev,
+        price: Number(price),
+        offerPrice: Number(offerPrice),
+      }));
+      setMenu((prev) =>
+        prev.map((item) =>
+          item._id === selectedMenu._id
+            ? { ...item, price: Number(price), offerPrice: Number(offerPrice) }
+            : item
+        )
+      );
+      setEditing(false);
+    } catch (err) {
+      alert("Failed to update price.");
+    }
   };
 
   return (
@@ -91,7 +118,7 @@ export default function OrderAnalysisPage() {
       <div className="md:w-1/3 w-full border-b md:border-b-0 md:border-r border-[#90C67C] p-4 md:p-8 overflow-y-auto bg-white/60 backdrop-blur-lg">
         <h2 className="text-2xl font-bold mb-6 text-[#328E6E] drop-shadow">Menu Items</h2>
         <ul>
-          {menu.map(item => (
+          {menu.map((item) => (
             <li
               key={item._id}
               className={`mb-4 rounded-xl shadow-green-custom transition transform hover:scale-105 hover:bg-[#E1EEBC] cursor-pointer p-4 ${
@@ -100,6 +127,7 @@ export default function OrderAnalysisPage() {
                   : "bg-white"
               }`}
               onClick={() => handleMenuClick(item)}
+              aria-label={`Select ${item.name}`}
             >
               <div className="font-semibold text-lg text-[#328E6E]">{item.name}</div>
               <div className="text-[#67AE6E]">
@@ -133,11 +161,14 @@ export default function OrderAnalysisPage() {
               </div>
               <div>
                 <span className="font-semibold">Offer Price:</span>{" "}
-                {selectedMenu.offerPrice ? `₹${selectedMenu.offerPrice}` : "—"}
+                {selectedMenu.offerPrice !== undefined && selectedMenu.offerPrice !== null
+                  ? `₹${selectedMenu.offerPrice}`
+                  : "—"}
               </div>
               <button
                 className="ml-0 md:ml-6 px-4 py-2 bg-[#328E6E] text-white rounded hover:bg-[#67AE6E] transition shadow-green-custom"
                 onClick={() => setEditing(true)}
+                aria-label="Edit Prices"
               >
                 Edit Prices
               </button>
@@ -165,12 +196,14 @@ export default function OrderAnalysisPage() {
                 <button
                   className="px-4 py-2 bg-[#328E6E] text-white rounded hover:bg-[#67AE6E] transition"
                   onClick={handleSave}
+                  aria-label="Save Prices"
                 >
                   Save
                 </button>
                 <button
                   className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition"
                   onClick={() => setEditing(false)}
+                  aria-label="Cancel Editing"
                 >
                   Cancel
                 </button>
@@ -193,10 +226,10 @@ export default function OrderAnalysisPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {getDailyOrderCounts().map(({ year, month, day, count }, idx) => {
+                    {getDailyOrderCounts().map(({ year, month, day, count }) => {
                       const status = getOrderStatus(count);
                       return (
-                        <tr key={idx} className="hover:bg-[#E1EEBC]/60 transition">
+                        <tr key={`${year}-${month}-${day}`} className="hover:bg-[#E1EEBC]/60 transition">
                           <td className="py-2 px-4">{year}</td>
                           <td className="py-2 px-4">{month}</td>
                           <td className="py-2 px-4">{day}</td>

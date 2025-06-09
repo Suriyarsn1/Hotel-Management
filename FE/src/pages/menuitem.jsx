@@ -1,116 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useContext } from 'react';
+import { MenuCardContext } from '../context/menuCardContext';
+import { IngredientContext } from '../context/ingridentContext';
 
-const units = ['grams', 'pieces', 'ml'];
-const categories = ['breakfast', 'lunch', 'dinner', 'today-special'];
+export default function MenuItemForm() {
+  const { allIngredients } = useContext(IngredientContext);
 
-export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [img, setImg] = useState(null);
-  const [cat, setCat] = useState(categories[0]);
-  const [ingredients, setIngredients] = useState([
-    { ingredient: '', quantity: '', unit: units[0] }
-  ]);
-  const [allIngredients, setAllIngredients] = useState([]);
-  const [preview, setPreview] = useState(null);
-
-  useEffect(() => {
-    axios.get(`${process.env.REACT_APP_SERVER_URL}/api/Ingredients-itemslist`)
-      .then(res => setAllIngredients(res.data))
-      .catch(err => console.error(err));
-  }, []);
-
-  useEffect(() => {
-    if (initialData) {
-      setName(initialData.name || '');
-      setDescription(initialData.description || '');
-      setPrice(initialData.price || '');
-      setCat(initialData.cat || categories[0]);
-      setIngredients(
-        initialData.ingredients && initialData.ingredients.length
-          ? initialData.ingredients.map(ing => ({
-              ingredient: ing.ingredient?._id || ing.ingredient || '',
-              quantity: ing.quantity || '',
-              unit: ing.unit || units[0]
-            }))
-          : [{ ingredient: '', quantity: '', unit: units[0] }]
-      );
-      setImg(null);
-      setPreview(initialData.imageURL || null);
-    } else {
-      setName('');
-      setDescription('');
-      setPrice('');
-      setCat(categories[0]);
-      setIngredients([{ ingredient: '', quantity: '', unit: units[0] }]);
-      setImg(null);
-      setPreview(null);
-    }
-  }, [initialData]);
-
-  const handleIngredientChange = (idx, field, value) => {
-    const updated = ingredients.map((ing, i) =>
-      i === idx ? { ...ing, [field]: value } : ing
-    );
-    setIngredients(updated);
-  };
-
-  const addIngredient = () =>
-    setIngredients([...ingredients, { ingredient: '', quantity: '', unit: units[0] }]);
-
-  const removeIngredient = idx =>
-    setIngredients(ingredients.filter((_, i) => i !== idx));
-
-  const handleImgChange = e => {
-    const file = e.target.files[0];
-    if (file && file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Image must be less than 5MB!');
-      return;
-    }
-    setImg(file);
-    setPreview(file ? URL.createObjectURL(file) : null);
-  };
-
-  const handleSubmit = async e => {
-    e.preventDefault();
-
-    for (const ing of ingredients) {
-      if (!ing.ingredient || !ing.quantity) {
-        alert("Please select an ingredient and enter a quantity for all ingredients.");
-        return;
-      }
-    }
-
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('description', description);
-    formData.append('price', Number(price));
-    formData.append('cat', cat);
-    if (img) formData.append('img', img);
-    formData.append('ingredients', JSON.stringify(ingredients));
-
-    try {
-      if (initialData && initialData._id) {
-        await axios.put(
-          `${process.env.REACT_APP_SERVER_URL}/api/menu-items/${initialData._id}`,
-          formData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-        if (onSuccess) onSuccess('Menu item updated!');
-      } else {
-        await axios.post(
-          `${process.env.REACT_APP_SERVER_URL}/api/menu-items`,
-          formData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-        if (onSuccess) onSuccess('Menu item added!');
-      }
-    } catch (err) {
-      alert(err?.response?.data?.error || 'Error saving menu item.');
-    }
-  };
+  const {
+    handleImgChange,
+    handleIngredientChange,
+    removeIngredient,
+    addIngredient,
+    handleSubmit,
+    ingredients,
+    setName,
+    setDescription,
+    setPrice,
+    setCat,
+    name,
+    description,
+    price,
+    cat,
+    categories,
+    units,
+    preview,
+    editingItem, // use this for edit mode
+    handleCancelEdit, // use this for cancel
+  } = useContext(MenuCardContext);
 
   return (
     <form
@@ -118,7 +33,7 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
       className="max-w-2xl mx-auto bg-white rounded-xl shadow-xl shadow-[#67AE6E]/30 p-8 mb-8 animate-fade-in"
     >
       <h3 className="text-2xl font-bold mb-4 text-[#328E6E]">
-        {initialData ? 'Edit Menu Item' : 'Add Menu Item'}
+        {editingItem ? 'Edit Menu Item' : 'Add Menu Item'}
       </h3>
       <div className="flex flex-col gap-4">
         <input
@@ -230,12 +145,12 @@ export default function MenuItemForm({ onSuccess, initialData, onCancel }) {
           type="submit"
           className="px-6 py-2 rounded-lg bg-[#328E6E] text-white font-semibold hover:bg-[#67AE6E] transition"
         >
-          {initialData ? 'Update' : 'Save'} Menu Item
+          {editingItem ? 'Update' : 'Save'} Menu Item
         </button>
-        {initialData && onCancel && (
+        {editingItem && handleCancelEdit && (
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancelEdit}
             className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
           >
             Cancel

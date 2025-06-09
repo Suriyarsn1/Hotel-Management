@@ -40,7 +40,7 @@ export default function KitchenViewBoard() {
   const readyOrders = orders.filter(order => order.status === "ready");
   const otherOrders = orders.filter(order => order.status !== "ready" && order.status !== "completed");
 
-  return (
+  return (<>
     <div className="flex h-[90vh] w-full bg-gradient-to-br from-[#E1EEBC] via-[#90C67C] to-[#328E6E]">
       {/* Left: Ready to Serve */}
       <div className="flex-1 border-r-4 border-[#67AE6E] bg-[#f6fff6] flex flex-col items-center pt-12">
@@ -78,7 +78,7 @@ export default function KitchenViewBoard() {
         }
       `}</style>
     </div>
-  );
+ </> );
 }
 
 // Order Card

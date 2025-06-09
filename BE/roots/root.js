@@ -6,7 +6,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // ====== Cloudinary Configuration ======
-console.log(process.env.CLOUD_API_SECRET)
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_API_KEY,

@@ -1,55 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import MenuItemForm from '../components/menuitem';
+import React, { useContext } from 'react';
+import MenuItemForm from '../pages/menuitem';
+import { MenuCardContext } from '../context/menuCardContext';
 
 function MenuManagementPage() {
-  const [menuItems, setMenuItems] = useState([]);
-  const [message, setMessage] = useState('');
-  const [editingItem, setEditingItem] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const fetchMenuItems = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/menu-itemslist`);
-      setMenuItems(res.data);
-    } catch (err) {
-      setMessage('Failed to fetch menu items.');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchMenuItems();
-    // eslint-disable-next-line
-  }, []);
-
-  const handleSuccess = (msg = 'Menu item saved!') => {
-    setMessage(msg);
-    fetchMenuItems();
-    setTimeout(() => setMessage(''), 2000);
-    setEditingItem(null);
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this menu item?')) {
-      try {
-        await axios.delete(`${process.env.REACT_APP_SERVER_URL}/api/menu-delete/${id}`);
-        handleSuccess('Menu item deleted!');
-      } catch (err) {
-        setMessage('Failed to delete menu item.');
-      }
-    }
-  };
-
-  const handleEdit = (item) => {
-    setEditingItem(item);
-    setMessage('');
-  };
-
-  const handleCancelEdit = () => {
-    setEditingItem(null);
-  };
+  const {
+    menuItems,
+    loading,
+    message,
+    handleSuccess,
+    handleDelete,
+    handleEdit,
+    handleCancelEdit,
+    editingItem,
+  } = useContext(MenuCardContext);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald4 via-emerald3 to-white p-6">
@@ -72,11 +35,7 @@ function MenuManagementPage() {
 
       {/* Form */}
       <div className="max-w-2xl mx-auto mb-10">
-        <MenuItemForm
-          onSuccess={handleSuccess}
-          initialData={editingItem} // <-- changed from editingItem to initialData
-          onCancel={handleCancelEdit}
-        />
+        <MenuItemForm />
       </div>
 
       {/* Table */}
@@ -120,7 +79,7 @@ function MenuManagementPage() {
                     <td className="px-6 py-4 flex gap-2">
                       <button
                         onClick={() => handleEdit(item)}
-                        className="bg-emerald2 hover:bg-emerald1 text-white px-3 py-1 rounded-lg shadow transition-all duration-200 hover:scale-105"
+                        className="bg-emerald2 hover:bg-emerald1 text-black px-3 py-1 rounded-lg shadow transition-all duration-200 hover:scale-105"
                       >
                         Edit
                       </button>

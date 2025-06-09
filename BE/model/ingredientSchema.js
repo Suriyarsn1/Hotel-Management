@@ -6,9 +6,11 @@ const IngredientSchema = new mongoose.Schema({
   threshold: { type: Number, required: true },
   inwardDate: { type: Date, required: true },   // Date and time received
   expiryDate: { type: Date, required: true },
+   status:String,
   unit: {
   type: String,
   required: true,
+ 
 }
 });
 

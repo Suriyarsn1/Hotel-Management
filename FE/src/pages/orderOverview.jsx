@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-
 
 const DELAY_THRESHOLD_MINUTES = 15;
 
@@ -28,7 +27,6 @@ function groupByTable(orders) {
 }
 
 export default function OrderOverview() {
- 
   const [orders, setOrders] = useState([]);
   const [selectedTable, setSelectedTable] = useState('ALL');
 
@@ -40,8 +38,12 @@ export default function OrderOverview() {
   }, []);
 
   const fetchOrders = async () => {
-    const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/orders`);
-    setOrders(res.data);
+    try {
+      const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/api/orders`);
+      setOrders(res.data);
+    } catch (err) {
+      console.error('Failed to fetch orders', err);
+    }
   };
 
   const handleComplete = async (orderId) => {
@@ -143,9 +145,6 @@ export default function OrderOverview() {
                 const now = new Date();
                 const mins = Math.floor((now - placedAt) / 60000);
                 const secs = Math.floor(((now - placedAt) % 60000) / 1000);
-
-                // Show "Collect Cash" if paymentMethod is 'cash'
-                // Show "Cash Paid" if paymentMethod is 'cash_paid'
                 return (
                   <tr
                     key={order._id}
@@ -226,6 +225,13 @@ export default function OrderOverview() {
         }
         .animate-fade-in-up {
           animation: fade-in-up 0.7s cubic-bezier(0.23,1,0.32,1) both;
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        .animate-blink {
+          animation: blink 1s infinite;
         }
       `}</style>
     </div>

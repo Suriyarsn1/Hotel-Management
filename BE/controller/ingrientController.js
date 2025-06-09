@@ -4,12 +4,13 @@ const Ingredient = require('../model/ingredientSchema');
 // Get all ingredients
 exports.getIngredients=async (req, res) => {
   const ingredients = await Ingredient.find();
-  res.json(ingredients);
+  res.json(ingredients||[]);
 };
 
 // Add a new ingredient
 exports.addIngredients=async(req, res) => {
   try {
+    console.log(req.body)
     const ingredient = new Ingredient(req.body);
     console.log(ingredient)
     await ingredient.save();

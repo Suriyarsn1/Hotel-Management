@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
+import React, { useState, useEffect,useRef } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import axios from 'axios';
 
 
 export default function TableQRManager() {
+  const qrRef = useRef();
   const [tables, setTables] = useState([]);
   const [form, setForm] = useState({ tableNumber: '' });
   const [editId, setEditId] = useState(null);
+  const [qrUrl,setQrUrl]=useState('')
+  console.log(qrUrl)
   console.log(process.env.REACT_APP_SERVER_URL)
 
   // Fetch all tables
@@ -30,7 +33,7 @@ export default function TableQRManager() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.tableNumber) return;
-    const qrUrl = generateQrUrl(form.tableNumber);
+     setQrUrl ( generateQrUrl(form.tableNumber));
 
     if (editId) {
       await axios.put(`${process.env.REACT_APP_SERVER_URL}/api/tables/${editId}`, { tableNumber: form.tableNumber, qrUrl });
@@ -58,26 +61,23 @@ export default function TableQRManager() {
 
   // Print QR code
   const handlePrint = (table) => {
+    const svg = qrRef.current.querySelector("svg");
+    const svgString = svg.outerHTML;
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head><title>Print QR Code</title></head>
         <body style="text-align:center;">
           <h2>Table: ${table.tableNumber}</h2>
-          <div id="qr-code"></div>
+                   ${svgString}
           <div style="font-size:12px;color:#888;">${table.qrUrl}</div>
         </body>
       </html>
     `);
     printWindow.document.close();
     printWindow.onload = () => {
-      const qrDiv = printWindow.document.getElementById('qr-code');
-      const qrCanvas = document.createElement('canvas');
-      QRCodeCanvas.toCanvas(qrCanvas, table.qrUrl, { width: 200 }, () => {
-        qrDiv.appendChild(qrCanvas);
         printWindow.print();
-      });
-    };
+      };
   };
 
   return (
@@ -129,8 +129,8 @@ export default function TableQRManager() {
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
                   <td className="px-6 py-4 font-semibold text-[#328E6E]">{table.tableNumber}</td>
-                  <td className="px-6 py-4">
-                    <QRCodeCanvas value={table.qrUrl} size={80} />
+                  <td  ref={qrRef} className="px-6 py-4">
+                      <QRCodeSVG value={table.qrUrl} size={80} />
                   </td>
                   <td className="px-6 py-4 text-xs text-[#67AE6E] break-all">{table.qrUrl}</td>
                   <td className="px-6 py-4 flex flex-col md:flex-row gap-2">

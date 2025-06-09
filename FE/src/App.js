@@ -1,65 +1,74 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-// Context Providers
+// Context Provider
 import AuthProvider from './context/authContexts';
+import IngredientProvider from './context/ingridentContext';
+import MenuCardProvider from './context/menuCardContext';
 
 // User Module
-import Login from './components/login';
-import Register from './components/register';
-
+import Login from './pages/login';
+import Register from './pages/register';
 
 // Admin Modules
-import Admin from './components/admin';
+import Admin from './pages/admin';
 
+// Pages
+import SalesAnalytics from './pages/orderAnalytics';
+import MenuItemForm from './pages/menuitem';
+import MenuManagementPage from './pages/menulist';
+import IngredientManagement from './pages/IngredientManagement';
+import UserMenuPage from './pages/userboard';
+import PaymentPage from './pages/payment';
+import TableQRManager from './pages/tablemanagement';
+import OrderOverview from './pages/orderOverview';
+import CookOrderView from './pages/cookingpage';
+import KitchenViewBoard from './pages/orderviewboard';
 
 // Styles
 import './App.css';
-import CookBoard from './components/cookingpage';
-import SalesAnalytics from './components/oderAnalize';
-import MenuItemForm from './components/menuitem';
-import MenuManagementPage from './components/menulist';
-import IngredientManagement from './components/IngredientManagement';
-import UserMenuPage from './components/userboard';
-import PaymentPage from './components/payment';
-import TableQRManager from './components/tablemanagement';
-import OrderOverview from './components/orderOverview';
-import CookOrderView from './components/cookingpage';
-import KitchenViewBoard from './components/orderviewboard';
-
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <MenuCardProvider>
+          <IngredientProvider>
+            <Routes>
+              {/* User Routes */}
+              <Route path='/' element={<Login />} />
+              <Route path='/user/register' element={<Register />} />
 
+              {/* Cook Dashboard */}
+              <Route path='/cook/dashboard' element={<CookOrderView />} />
 
+              {/* Ingredient Management */}
+              <Route path='/ingredient' element={<IngredientManagement />} />
 
+              {/* User Menu */}
+              <Route path='/user/menu' element={<UserMenuPage />} />
 
-        <Routes>
-          {/* User Routes */}
+              {/* Menu Management */}
+              <Route path='/add/menu' element={<MenuManagementPage />} />
+              <Route path='/menu/item' element={<MenuItemForm />} />
+              <Route path='/admin/menu' element={<MenuItemForm />} />
 
-          <Route path='/' element={<Login />} />
-          <Route path='/user/register' element={<Register />} />
+              {/* Payment */}
+              <Route path='/payment' element={<PaymentPage />} />
 
-          <Route path='/cook/dashboard' element={<CookOrderView />} />
-          <Route path='/ingrident' element={<IngredientManagement />} />
-           <Route path='/user/menu' element={<UserMenuPage />} />
-          <Route path='/add/menu' element={<MenuManagementPage />} />
-          <Route path='/menu/item' element={<MenuItemForm />} />
-          <Route path='/admin/menu' element={<MenuItemForm />} />
-           <Route path='/payment' element={<PaymentPage/>} />
-          <Route path='/admin/oder/analytics' element={<SalesAnalytics />} />
-          <Route path='/admin/home' element={<Admin />} />
-          <Route path='/table/management' element={<TableQRManager />} />
-          <Route path='/oder/overview' element={<OrderOverview />} />
-          <Route path='/oder/dashboard' element={<KitchenViewBoard />} />
+              {/* Admin Analytics */}
+              <Route path='/admin/order/analytics' element={<SalesAnalytics />} />
+              <Route path='/admin/home' element={<Admin />} />
 
+              {/* Table Management */}
+              <Route path='/table/management' element={<TableQRManager />} />
 
-
-
-        </Routes>
-
+              {/* Order Overview */}
+              <Route path='/order/overview' element={<OrderOverview />} />
+              <Route path='/order/dashboard' element={<KitchenViewBoard />} />
+            </Routes>
+          </IngredientProvider>
+        </MenuCardProvider>
       </AuthProvider>
     </BrowserRouter>
   );

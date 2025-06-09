@@ -10,6 +10,7 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
+  console.log('hi')
 
   // submission
   const handleSubmit = async (e) => {
